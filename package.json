@@ -9,6 +9,9 @@
     "node": ">=14.0.0"
   },
   "scripts": {
+    "backend": "bash scripts/backend.sh start",
+    "backend:stop": "bash scripts/backend.sh stop",
+    "backend:reset": "bash scripts/backend.sh reset",
     "build": "react-scripts build",
     "format": "prettier --write src/**/*.{ts,tsx}",
     "lint": "eslint --ext .ts,.tsx src",

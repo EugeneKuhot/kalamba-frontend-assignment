@@ -1,85 +1,102 @@
-export default function LoginRegister() {
-  return (
-    <>
-      <nav className="navbar navbar-light">
-        <div className="container">
-          <a className="navbar-brand" href="/#">
-            conduit
-          </a>
-          <ul className="nav navbar-nav pull-xs-right">
-            <li className="nav-item">
-              {/* Add "active" class when you're on that page" */}
-              <a className="nav-link active" href="/#">
-                Home
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/editor">
-                <i className="ion-compose" />
-                &nbsp;New Article
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/settings">
-                <i className="ion-gear-a" />
-                &nbsp;Settings
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/login">
-                Sign in
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/register">
-                Sign up
-              </a>
-            </li>
-          </ul>
-        </div>
-      </nav>
+import React, { FormEvent, useState } from "react";
+import { Link, useHistory, useLocation } from "react-router-dom";
 
+import Layout from "./components/Layout";
+import { useAuth } from "./context/AuthContext";
+import { ApiError } from "./types";
+
+export default function LoginRegister() {
+  const { login } = useAuth();
+  const history = useHistory();
+  const location = useLocation<{ from?: { pathname: string } }>();
+  const isLogin = location.pathname === "/login";
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    setErrors([]);
+    setIsSubmitting(true);
+
+    try {
+      await login(email, password);
+      const redirectTo = location.state?.from?.pathname || "/";
+      history.push(redirectTo);
+    } catch (error) {
+      const apiError = error as ApiError;
+      if (apiError.errors) {
+        const messages = Object.values(apiError.errors).flat();
+        setErrors(messages);
+      } else {
+        setErrors(["Invalid email or password"]);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Layout activePage={isLogin ? "login" : "register"}>
       <div className="auth-page">
         <div className="container page">
           <div className="row">
             <div className="col-md-6 offset-md-3 col-xs-12">
-              <h1 className="text-xs-center">Sign up</h1>
-              <p className="text-xs-center">
-                <a href="">Have an account?</a>
-              </p>
+              <h1 className="text-xs-center">{isLogin ? "Sign in" : "Sign up"}</h1>
+              {isLogin ? (
+                <p className="text-xs-center">
+                  <Link to="/register">Need an account?</Link>
+                </p>
+              ) : (
+                <p className="text-xs-center">
+                  <Link to="/login">Have an account?</Link>
+                </p>
+              )}
 
-              <ul className="error-messages">
-                <li>That email is already taken</li>
-              </ul>
+              {errors.length > 0 && (
+                <ul className="error-messages">
+                  {errors.map((message) => (
+                    <li key={message}>{message}</li>
+                  ))}
+                </ul>
+              )}
 
-              <form>
+              <form onSubmit={handleSubmit}>
+                {!isLogin && (
+                  <fieldset className="form-group">
+                    <input className="form-control form-control-lg" type="text" placeholder="Your Name" disabled />
+                  </fieldset>
+                )}
                 <fieldset className="form-group">
-                  <input className="form-control form-control-lg" type="text" placeholder="Your Name" />
+                  <input
+                    className="form-control form-control-lg"
+                    type="text"
+                    placeholder="Email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
                 </fieldset>
                 <fieldset className="form-group">
-                  <input className="form-control form-control-lg" type="text" placeholder="Email" />
+                  <input
+                    className="form-control form-control-lg"
+                    type="password"
+                    placeholder="Password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                  />
                 </fieldset>
-                <fieldset className="form-group">
-                  <input className="form-control form-control-lg" type="password" placeholder="Password" />
-                </fieldset>
-                <button className="btn btn-lg btn-primary pull-xs-right">Sign up</button>
+                <button className="btn btn-lg btn-primary pull-xs-right" disabled={isSubmitting}>
+                  {isLogin ? "Sign in" : "Sign up"}
+                </button>
               </form>
             </div>
           </div>
         </div>
       </div>
-
-      <footer>
-        <div className="container">
-          <a href="/#" className="logo-font">
-            conduit
-          </a>
-          <span className="attribution">
-            An interactive learning project from <a href="https://thinkster.io">Thinkster</a>. Code &amp; design
-            licensed under MIT.
-          </span>
-        </div>
-      </footer>
-    </>
+    </Layout>
   );
 }

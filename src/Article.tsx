@@ -1,105 +1,109 @@
-export default function Article() {
-  return (
-    <>
-      <nav className="navbar navbar-light">
-        <div className="container">
-          <a className="navbar-brand" href="/#">
-            conduit
-          </a>
-          <ul className="nav navbar-nav pull-xs-right">
-            <li className="nav-item">
-              {/* Add "active" class when you're on that page" */}
-              <a className="nav-link active" href="/#">
-                Home
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/editor">
-                <i className="ion-compose" />
-                &nbsp;New Article
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/settings">
-                <i className="ion-gear-a" />
-                &nbsp;Settings
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/login">
-                Sign in
-              </a>
-            </li>
-            <li className="nav-item">
-              <a className="nav-link" href="/#/register">
-                Sign up
-              </a>
-            </li>
-          </ul>
-        </div>
-      </nav>
+import React, { useEffect, useState } from "react";
+import { Link, useParams } from "react-router-dom";
 
+import * as api from "./api/client";
+import { AuthorImageLink } from "./components/AuthorImage";
+import FavoriteArticleButton from "./components/FavoriteArticleButton";
+import FollowAuthorButton from "./components/FollowAuthorButton";
+import Layout from "./components/Layout";
+import { Article as ArticleType } from "./types";
+import { formatDate } from "./utils/formatDate";
+
+export default function Article() {
+  const { slug } = useParams<{ slug: string }>();
+  const [article, setArticle] = useState<ArticleType | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    setIsLoading(true);
+    api
+      .getArticle(slug)
+      .then(setArticle)
+      .catch(() => setError("Article not found"))
+      .finally(() => setIsLoading(false));
+  }, [slug]);
+
+  const updateArticle = (updates: Partial<ArticleType>) => {
+    setArticle((current) => (current ? { ...current, ...updates } : current));
+  };
+
+  if (isLoading) {
+    return (
+      <Layout activePage="home">
+        <div className="article-page">
+          <div className="container page">
+            <p>Loading article...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (error || !article) {
+    return (
+      <Layout activePage="home">
+        <div className="article-page">
+          <div className="container page">
+            <p>{error || "Article not found"}</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const articleMeta = (
+    <div className="article-meta">
+      <AuthorImageLink username={article.author.username} image={article.author.image} />
+      <div className="info">
+        <Link to={`/profile/${article.author.username}`} className="author">
+          {article.author.username}
+        </Link>
+        <span className="date">{formatDate(article.createdAt)}</span>
+      </div>
+      <FollowAuthorButton
+        username={article.author.username}
+        following={article.author.following}
+        onUpdate={(following) =>
+          updateArticle({ author: { ...article.author, following } })
+        }
+      />
+      &nbsp;&nbsp;
+      <FavoriteArticleButton
+        slug={article.slug}
+        favorited={article.favorited}
+        favoritesCount={article.favoritesCount}
+        className="btn btn-sm btn-outline-primary"
+        showLabel
+        onUpdate={(favorited, favoritesCount) => updateArticle({ favorited, favoritesCount })}
+      />
+    </div>
+  );
+
+  return (
+    <Layout activePage="home">
       <div className="article-page">
         <div className="banner">
           <div className="container">
-            <h1>How to build webapps that scale</h1>
-
-            <div className="article-meta">
-              <a href="/#/profile/ericsimmons">
-                <img src="http://i.imgur.com/Qr71crq.jpg" />
-              </a>
-              <div className="info">
-                <a href="/#/profile/ericsimmons" className="author">
-                  Eric Simons
-                </a>
-                <span className="date">January 20th</span>
-              </div>
-              <button className="btn btn-sm btn-outline-secondary">
-                <i className="ion-plus-round" />
-                &nbsp; Follow Eric Simons <span className="counter">(10)</span>
-              </button>
-              &nbsp;&nbsp;
-              <button className="btn btn-sm btn-outline-primary">
-                <i className="ion-heart" />
-                &nbsp; Favorite Post <span className="counter">(29)</span>
-              </button>
-            </div>
+            <h1>{article.title}</h1>
+            {articleMeta}
           </div>
         </div>
 
         <div className="container page">
           <div className="row article-content">
             <div className="col-md-12">
-              <p>Web development technologies have evolved at an incredible clip over the past few years.</p>
-              <h2 id="introducing-ionic">Introducing RealWorld.</h2>
-              <p>It&lsquo;s a great solution for learning how other frameworks work.</p>
+              {article.body.split("\n").map((paragraph, index) => (
+                <p key={index}>{paragraph}</p>
+              ))}
             </div>
           </div>
 
           <hr />
 
-          <div className="article-actions">
-            <div className="article-meta">
-              <a href="/#/profile/ericsimmons">
-                <img src="http://i.imgur.com/Qr71crq.jpg" />
-              </a>
-              <div className="info">
-                <a href="/#/profile/ericsimmons" className="author">
-                  Eric Simons
-                </a>
-                <span className="date">January 20th</span>
-              </div>
-              <button className="btn btn-sm btn-outline-secondary">
-                <i className="ion-plus-round" />
-                &nbsp; Follow Eric Simons
-              </button>
-              &nbsp;
-              <button className="btn btn-sm btn-outline-primary">
-                <i className="ion-heart" />
-                &nbsp; Favorite Post <span className="counter">(29)</span>
-              </button>
-            </div>
-          </div>
+          <div className="article-actions">{articleMeta}</div>
 
           <div className="row">
             <div className="col-xs-12 col-md-8 offset-md-2">
@@ -109,7 +113,9 @@ export default function Article() {
                 </div>
                 <div className="card-footer">
                   <img src="http://i.imgur.com/Qr71crq.jpg" className="comment-author-img" />
-                  <button className="btn btn-sm btn-primary">Post Comment</button>
+                  <button type="button" className="btn btn-sm btn-primary">
+                    Post Comment
+                  </button>
                 </div>
               </form>
 
@@ -152,18 +158,6 @@ export default function Article() {
           </div>
         </div>
       </div>
-
-      <footer>
-        <div className="container">
-          <a href="/#" className="logo-font">
-            conduit
-          </a>
-          <span className="attribution">
-            An interactive learning project from <a href="https://thinkster.io">Thinkster</a>. Code &amp; design
-            licensed under MIT.
-          </span>
-        </div>
-      </footer>
-    </>
+    </Layout>
   );
 }
