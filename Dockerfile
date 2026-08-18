@@ -1,11 +1,13 @@
 FROM mhart/alpine-node:14.17.3 AS build-env
 WORKDIR /app
+ENV CI=false
+ENV DISABLE_ESLINT_PLUGIN=true
 ADD package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 ADD . .
 RUN npm run build
 
-FROM nginx:1.21.3-alpine as production
+FROM nginx:1.21.3-alpine AS production
 ENV NODE_ENV=production
 COPY --from=build-env /app/build /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf

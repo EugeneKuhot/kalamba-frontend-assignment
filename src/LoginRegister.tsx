@@ -3,12 +3,11 @@ import { Link, useHistory, useLocation } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import { useAuth } from "./context/AuthContext";
-import { ApiError } from "./types";
 
 export default function LoginRegister() {
   const { login } = useAuth();
   const history = useHistory();
-  const location = useLocation<{ from?: { pathname: string } }>();
+  const location = useLocation();
   const isLogin = location.pathname === "/login";
 
   const [email, setEmail] = useState("");
@@ -23,12 +22,12 @@ export default function LoginRegister() {
 
     try {
       await login(email, password);
-      const redirectTo = location.state?.from?.pathname || "/";
-      history.push(redirectTo);
+      const fromPath = (location.state as { from?: { pathname: string } } | undefined)?.from?.pathname;
+      history.push(fromPath || "/");
     } catch (error) {
-      const apiError = error as ApiError;
-      if (apiError.errors) {
-        const messages = Object.values(apiError.errors).flat();
+      if (error && typeof error === "object" && "errors" in error) {
+        const errorBody = error as { errors: { [key: string]: string[] } };
+        const messages = Object.values(errorBody.errors).flat();
         setErrors(messages);
       } else {
         setErrors(["Invalid email or password"]);

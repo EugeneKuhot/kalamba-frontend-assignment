@@ -8,10 +8,13 @@ function getToken(): string | null {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const headers: Record<string, string> = {
+  const headers: { [key: string]: string } = {
     "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
   };
+
+  if (options.headers && typeof options.headers === "object") {
+    Object.assign(headers, options.headers);
+  }
 
   if (token) {
     headers.Authorization = `Token ${token}`;
